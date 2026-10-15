@@ -34,27 +34,31 @@ in {
       }
     ];
 
-    environment.etc."statime-inferno/inferno-ptpv1.toml".text = ''
-      loglevel = "warn"
-      sdo-id = 0
-      domain = 0
-      priority1 = 251
-      virtual-system-clock = true
-      virtual-system-clock-base = "monotonic_raw"
-      usrvclock-export = true
+    environment = {
+      systemPackages = [cfg.package];
+      etc = {
+        "statime-inferno/inferno-ptpv1.toml".text = ''
+          loglevel = "warn"
+          sdo-id = 0
+          domain = 0
+          priority1 = 251
+          virtual-system-clock = true
+          virtual-system-clock-base = "monotonic_raw"
+          usrvclock-export = true
 
-      [[port]]
-      interface = "${cfg.interface}"
-      network-mode = "ipv4"
-      hardware-clock = "auto"
-      protocol-version = "PTPv1"
-    '';
-
-    environment.etc."asound.conf".text = ''
-      pcm_type.inferno {
-        lib ${cfg.package}/lib/alsa-lib/libasound_module_pcm_inferno.so
-      }
-    '';
+          [[port]]
+          interface = "${cfg.interface}"
+          network-mode = "ipv4"
+          hardware-clock = "auto"
+          protocol-version = "PTPv1"
+        '';
+        "asound.conf".text = ''
+          pcm_type.inferno {
+            lib ${cfg.package}/lib/alsa-lib/libasound_module_pcm_inferno.so
+          }
+        '';
+      };
+    };
 
     systemd.user.services.pipewire = lib.mkIf config.services.pipewire.enable {
       serviceConfig.SystemCallFilter = lib.mkForce "@default @aio @io-event @network @process @file-system @basic-io @signal @timer @clock";
