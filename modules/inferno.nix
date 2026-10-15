@@ -6,37 +6,34 @@
 }: let
   cfg = config.services.inferno;
 in {
-  options.services.inferno = with lib; {
-    enable = mkEnableOption "Inferno AoIP Dante-compatible virtual soundcard";
+  options.services.inferno = {
+    enable = lib.mkEnableOption "Inferno AoIP Dante-compatible virtual soundcard";
 
-    openFirewall = mkOption {
-      type = types.bool;
+    openFirewall = lib.mkOption {
+      type = lib.types.bool;
       default = false;
       description = "Open Dante/Inferno UDP ports in the firewall.";
     };
 
-    interface = mkOption {
-      type = types.str;
+    interface = lib.mkOption {
+      type = lib.types.nonEmptyStr;
       example = "enp0s31f6";
       description = "Network interface for Statime PTP clock synchronisation.";
     };
 
-    package = mkOption {
-      type = types.package;
-      default = pkgs.inferno;
-      defaultText = lib.literalExpression "pkgs.inferno";
-      description = "The inferno-aoip package.";
-    };
+    package = lib.mkPackageOption pkgs "inferno" {};
 
-    statimedPackage = mkOption {
-      type = types.package;
-      default = pkgs.statime-inferno;
-      defaultText = lib.literalExpression "pkgs.statime-inferno";
-      description = "The statime-inferno PTP daemon package.";
-    };
+    statimedPackage = lib.mkPackageOption pkgs "statime-inferno" {};
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.interface != "";
+        message = "services.inferno.interface must be set to a network interface name.";
+      }
+    ];
+
     environment.etc."statime-inferno/inferno-ptpv1.toml".text = ''
       loglevel = "warn"
       sdo-id = 0
@@ -53,13 +50,15 @@ in {
       protocol-version = "PTPv1"
     '';
 
-    systemd.user.services.pipewire.serviceConfig.SystemCallFilter = "@default @aio @io-event @network @process @file-system @basic-io @signal @timer @clock";
-
-    sound.extraConfig = ''
+    hardware.alsa.config = ''
       pcm_type.inferno {
         lib ${cfg.package}/lib/alsa-lib/libasound_module_pcm_inferno.so
       }
     '';
+
+    systemd.user.services.pipewire = lib.mkIf config.services.pipewire.enable {
+      serviceConfig.SystemCallFilter = lib.mkForce "@default @aio @io-event @network @process @file-system @basic-io @signal @timer @clock";
+    };
 
     systemd.services.statime-inferno = {
       description = "Statime PTP daemon for Inferno AoIP";
@@ -71,11 +70,11 @@ in {
         ExecStart = "${cfg.statimedPackage}/bin/statime -c /etc/statime-inferno/inferno-ptpv1.toml";
         Restart = "on-failure";
         RestartSec = 5;
-        AmbientCapabilities = ["CAP_NET_RAW" "CAP_SYS_TIME"];
-        CapabilityBoundingSet = ["CAP_NET_RAW" "CAP_SYS_TIME"];
+        AmbientCapabilities = ["CAP_NET_RAW" "CAP_NET_BIND_SERVICE" "CAP_SYS_TIME"];
+        CapabilityBoundingSet = ["CAP_NET_RAW" "CAP_NET_BIND_SERVICE" "CAP_SYS_TIME"];
       };
     };
 
-    networking.firewall.allowedUDPPorts = lib.mkIf cfg.openFirewall [4455 8700 4400 8800];
+    networking.firewall.allowedUDPPorts = lib.optionals cfg.openFirewall [4455 8700 4400 8800];
   };
 }
