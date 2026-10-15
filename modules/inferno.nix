@@ -50,7 +50,7 @@ in {
       protocol-version = "PTPv1"
     '';
 
-    hardware.alsa.config = ''
+    environment.etc."asound.conf".text = ''
       pcm_type.inferno {
         lib ${cfg.package}/lib/alsa-lib/libasound_module_pcm_inferno.so
       }
