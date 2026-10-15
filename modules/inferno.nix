@@ -37,28 +37,23 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    environment.etc = {
-      "statime-inferno/inferno-ptpv1.toml".text = ''
-        loglevel = "warn"
-        sdo-id = 0
-        domain = 0
-        priority1 = 251
-        virtual-system-clock = true
-        virtual-system-clock-base = "monotonic_raw"
-        usrvclock-export = true
+    environment.etc."statime-inferno/inferno-ptpv1.toml".text = ''
+      loglevel = "warn"
+      sdo-id = 0
+      domain = 0
+      priority1 = 251
+      virtual-system-clock = true
+      virtual-system-clock-base = "monotonic_raw"
+      usrvclock-export = true
 
-        [[port]]
-        interface = "${cfg.interface}"
-        network-mode = "ipv4"
-        hardware-clock = "auto"
-        protocol-version = "PTPv1"
-      '';
+      [[port]]
+      interface = "${cfg.interface}"
+      network-mode = "ipv4"
+      hardware-clock = "auto"
+      protocol-version = "PTPv1"
+    '';
 
-      "systemd/user/pipewire.service.d/10-inferno-aoip.conf".text = ''
-        [Service]
-        SystemCallFilter=@default @aio @io-event @network @process @file-system @basic-io @signal @timer @clock
-      '';
-    };
+    systemd.user.services.pipewire.serviceConfig.SystemCallFilter = "@default @aio @io-event @network @process @file-system @basic-io @signal @timer @clock";
 
     sound.extraConfig = ''
       pcm_type.inferno {
