@@ -131,7 +131,7 @@ in {
             factory.name=api.alsa.pcm.source
             node.name=Inferno
             media.class=Audio/Source
-            api.alsa.path="inferno:RX_CHANNELS=${toString cfg.rxChannels},TX_CHANNELS=${toString cfg.txChannels}"
+            api.alsa.path="inferno:RX_CHANNELS=${toString cfg.rxChannels},TX_CHANNELS=${toString cfg.txChannels},BIND_IP=${cfg.interface}"
             session.suspend-timeout-seconds=0
             node.pause-on-idle=false
             node.suspend-on-idle=false
@@ -144,7 +144,7 @@ in {
             factory.name=api.alsa.pcm.sink
             node.name=Inferno
             media.class=Audio/Sink
-            api.alsa.path="inferno:RX_CHANNELS=${toString cfg.rxChannels},TX_CHANNELS=${toString cfg.txChannels}"
+            api.alsa.path="inferno:RX_CHANNELS=${toString cfg.rxChannels},TX_CHANNELS=${toString cfg.txChannels},BIND_IP=${cfg.interface}"
             session.suspend-timeout-seconds=0
             node.pause-on-idle=false
             node.suspend-on-idle=false
