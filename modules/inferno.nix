@@ -118,7 +118,14 @@ in {
         };
       };
 
-      networking.firewall.allowedUDPPorts = lib.optionals cfg.openFirewall [4455 8700 4400 8800];
+      networking.firewall.allowedUDPPorts = lib.optionals cfg.openFirewall [
+        4455
+        8700
+        4400
+        8800 # Dante/Inferno discovery and media
+        319
+        320 # PTP event and general messages (IEEE 1588)
+      ];
     }
 
     (lib.mkIf config.services.pipewire.enable {
