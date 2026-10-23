@@ -126,7 +126,10 @@ in {
       # must not be auto-loaded at boot. Use inferno-start/inferno-stop at the venue.
       environment.systemPackages = [
         (pkgs.writeShellScriptBin "inferno-start" ''
-          pw-cli create-node adapter '{
+          # pw-cli blocks until the node is active; use timeout so this returns
+          # immediately. PipeWire retains the linger=1 node and keeps retrying
+          # plugin_prepare until the PTP clock (statime) is synchronised.
+          timeout 2 pw-cli create-node adapter '{
             object.linger=1
             factory.name=api.alsa.pcm.source
             node.name=Inferno
@@ -138,8 +141,8 @@ in {
             node.always-process=true
             api.alsa.headroom=128
             api.alsa.pcm.card=999
-          }'
-          pw-cli create-node adapter '{
+          }' || true
+          timeout 2 pw-cli create-node adapter '{
             object.linger=1
             factory.name=api.alsa.pcm.sink
             node.name=Inferno
@@ -151,7 +154,8 @@ in {
             node.always-process=true
             api.alsa.headroom=128
             api.alsa.pcm.card=999
-          }'
+          }' || true
+          echo "Inferno nodes created. PipeWire will activate them once PTP clock is ready."
         '')
         (pkgs.writeShellScriptBin "inferno-stop" ''
           pw-cli list-objects \
