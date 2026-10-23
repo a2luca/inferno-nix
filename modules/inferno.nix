@@ -122,40 +122,42 @@ in {
     }
 
     (lib.mkIf config.services.pipewire.enable {
-      services.pipewire.extraConfig.pipewire."10-inferno" = {
-        "context.objects" = [
-          {
-            factory = "adapter";
-            args = {
-              "factory.name" = "api.alsa.pcm.source";
-              "node.name" = "Inferno";
-              "media.class" = "Audio/Source";
-              "api.alsa.path" = "inferno:RX_CHANNELS=${toString cfg.rxChannels},TX_CHANNELS=${toString cfg.txChannels}";
-              "session.suspend-timeout-seconds" = 0;
-              "node.pause-on-idle" = false;
-              "node.suspend-on-idle" = false;
-              "node.always-process" = true;
-              "api.alsa.headroom" = 128;
-              "api.alsa.pcm.card" = 999;
-            };
-          }
-          {
-            factory = "adapter";
-            args = {
-              "factory.name" = "api.alsa.pcm.sink";
-              "node.name" = "Inferno";
-              "media.class" = "Audio/Sink";
-              "api.alsa.path" = "inferno:RX_CHANNELS=${toString cfg.rxChannels},TX_CHANNELS=${toString cfg.txChannels}";
-              "session.suspend-timeout-seconds" = 0;
-              "node.pause-on-idle" = false;
-              "node.suspend-on-idle" = false;
-              "node.always-process" = true;
-              "api.alsa.headroom" = 128;
-              "api.alsa.pcm.card" = 999;
-            };
-          }
-        ];
-      };
+      # inferno blocks on ALSA init until PTP clock is available, so nodes
+      # must not be auto-loaded at boot. Use inferno-start/inferno-stop at the venue.
+      environment.systemPackages = [
+        (pkgs.writeShellScriptBin "inferno-start" ''
+          pw-cli create-node adapter '{
+            object.linger=1
+            factory.name=api.alsa.pcm.source
+            node.name=Inferno
+            media.class=Audio/Source
+            api.alsa.path="inferno:RX_CHANNELS=${toString cfg.rxChannels},TX_CHANNELS=${toString cfg.txChannels}"
+            session.suspend-timeout-seconds=0
+            node.pause-on-idle=false
+            node.suspend-on-idle=false
+            node.always-process=true
+            api.alsa.headroom=128
+            api.alsa.pcm.card=999
+          }'
+          pw-cli create-node adapter '{
+            object.linger=1
+            factory.name=api.alsa.pcm.sink
+            node.name=Inferno
+            media.class=Audio/Sink
+            api.alsa.path="inferno:RX_CHANNELS=${toString cfg.rxChannels},TX_CHANNELS=${toString cfg.txChannels}"
+            session.suspend-timeout-seconds=0
+            node.pause-on-idle=false
+            node.suspend-on-idle=false
+            node.always-process=true
+            api.alsa.headroom=128
+            api.alsa.pcm.card=999
+          }'
+        '')
+        (pkgs.writeShellScriptBin "inferno-stop" ''
+          pw-cli list-objects | awk '/node\.name = "Inferno"/{found=1} found && /^[[:space:]]*id [0-9]+/{print $2; found=0}' \
+            | xargs -r -I{} pw-cli destroy {}
+        '')
+      ];
 
       systemd.user.services.pipewire.serviceConfig.SystemCallFilter = lib.mkForce "@default @aio @io-event @network @process @file-system @basic-io @signal @timer @clock";
     })
