@@ -56,7 +56,7 @@ in {
             domain = 0
             priority1 = 251
             virtual-system-clock = true
-            virtual-system-clock-base = "monotonic_raw"
+            virtual-system-clock-base = "tai"
             usrvclock-export = true
 
             [[port]]
