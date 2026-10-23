@@ -154,7 +154,8 @@ in {
           }'
         '')
         (pkgs.writeShellScriptBin "inferno-stop" ''
-          pw-cli list-objects | awk '/node\.name = "Inferno"/{found=1} found && /^[[:space:]]*id [0-9]+/{print $2; found=0}' \
+          pw-cli list-objects \
+            | awk '/id [0-9]+, type PipeWire:Interface:Node/{id=$2; sub(/,$/,"",id)} /node\.name = "Inferno"/{print id}' \
             | xargs -r -I{} pw-cli destroy {}
         '')
       ];
