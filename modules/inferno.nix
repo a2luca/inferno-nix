@@ -12,7 +12,18 @@ in {
     openFirewall = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Open Dante/Inferno UDP ports in the firewall.";
+      description = ''
+        Open Dante/Inferno discovery and PTP ports in the NixOS firewall.
+
+        WARNING: This is insufficient for audio to flow. Inferno binds its
+        audio RX socket to port 0 (OS-assigned ephemeral), so transmitters
+        send audio to an unpredictable port that cannot be statically opened.
+        The RELATED/ESTABLISHED rule does not help because inbound audio is a
+        new UDP flow initiated by the transmitter.  To use Dante audio you must
+        either set <option>networking.firewall.enable</option> to false, or
+        trust the Dante network interface via
+        <option>networking.firewall.trustedInterfaces</option>.
+      '';
     };
 
     interface = lib.mkOption {
@@ -114,7 +125,11 @@ in {
           Restart = "on-failure";
           RestartSec = 5;
           AmbientCapabilities = ["CAP_NET_RAW" "CAP_NET_BIND_SERVICE" "CAP_SYS_TIME"];
-          CapabilityBoundingSet = ["CAP_NET_RAW" "CAP_NET_BIND_SERVICE" "CAP_SYS_TIME"];
+          # CAP_DAC_OVERRIDE is required so root can write to usrvclock client
+          # sockets owned by the PipeWire user (srwxr-xr-x, others have no write).
+          # Without it, sendto() to /tmp/usrvclock-client.PID.N returns EACCES
+          # and clock overlays never reach PipeWire.
+          CapabilityBoundingSet = ["CAP_NET_RAW" "CAP_NET_BIND_SERVICE" "CAP_SYS_TIME" "CAP_DAC_OVERRIDE"];
         };
       };
 
